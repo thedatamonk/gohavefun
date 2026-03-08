@@ -27,6 +27,7 @@ func main() {
 		os.Exit(1)
 	}
 	if err := trace.Start(traceFile); err != nil {
+		traceFile.Close()
 		fmt.Fprintf(os.Stderr, "trace start error: %v\n", err)
 		os.Exit(1)
 	}
@@ -79,7 +80,9 @@ func main() {
 	fmt.Println("\nShutting down...")
 
 	trace.Stop()
-	traceFile.Close()
+	if err := traceFile.Close(); err != nil {
+		fmt.Fprintf(os.Stderr, "trace close error: %v\n", err)
+	}
 
 	cancel()
 
