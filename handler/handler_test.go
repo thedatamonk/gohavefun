@@ -108,3 +108,77 @@ func TestSetInvalidJSON(t *testing.T) {
 		t.Fatalf("expected 400, got %d", w.Code)
 	}
 }
+
+func setupChurnStore() *store.FeatureStore {
+	fs := store.NewFeatureStore()
+	fs.Set("customer_profile", "cust-0001", store.FeatureVector{
+		"tenure_months": 60, "plan_tier": 3, "monthly_charge": 29.99,
+	})
+	fs.Set("usage_metrics", "cust-0001", store.FeatureVector{
+		"logins_last_30d": 25, "avg_session_minutes": 45,
+		"days_since_last_login": 1, "feature_adoption_pct": 85,
+	})
+	fs.Set("billing", "cust-0001", store.FeatureVector{
+		"total_spend": 1800, "late_payments_count": 0, "avg_monthly_spend": 30,
+	})
+	fs.Set("support", "cust-0001", store.FeatureVector{
+		"tickets_last_90d": 0, "avg_resolution_hours": 0, "escalation_count": 0,
+	})
+	return fs
+}
+
+func TestPredictEndpoint(t *testing.T) {
+	h := New(setupChurnStore())
+	req := httptest.NewRequest("GET", "/predict/cust-0001", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "churn_probability") {
+		t.Fatalf("expected churn_probability in response: %s", w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "risk_level") {
+		t.Fatalf("expected risk_level in response: %s", w.Body.String())
+	}
+}
+
+func TestPredictNotFound(t *testing.T) {
+	h := New(setupChurnStore())
+	req := httptest.NewRequest("GET", "/predict/nonexistent", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", w.Code)
+	}
+}
+
+func TestCustomerFeaturesEndpoint(t *testing.T) {
+	h := New(setupChurnStore())
+	req := httptest.NewRequest("GET", "/customers/cust-0001/features", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	body := w.Body.String()
+	for _, group := range []string{"customer_profile", "usage_metrics", "billing", "support"} {
+		if !strings.Contains(body, group) {
+			t.Fatalf("expected %s in response: %s", group, body)
+		}
+	}
+}
+
+func TestCustomerFeaturesNotFound(t *testing.T) {
+	h := New(setupChurnStore())
+	req := httptest.NewRequest("GET", "/customers/nonexistent/features", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", w.Code)
+	}
+}
