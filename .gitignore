@@ -5,3 +5,5 @@ gofun
 __debug*
 data/
 registry.db
+models/
+training/.venv/
