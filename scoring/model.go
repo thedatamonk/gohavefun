@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 // Tree represents a single XGBoost decision tree using flat arrays.
@@ -118,7 +119,11 @@ func LoadXGBoostModel(path string) (*XGBoostModel, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parse num_feature %q: %w", raw.Learner.LearnerModelParam.NumFeature, err)
 	}
-	baseScore, err := strconv.ParseFloat(raw.Learner.LearnerModelParam.BaseScore, 64)
+	baseScoreStr := raw.Learner.LearnerModelParam.BaseScore
+	// XGBoost >= 2.1 wraps base_score in brackets, e.g. "[2.285E-1]"
+	baseScoreStr = strings.TrimPrefix(baseScoreStr, "[")
+	baseScoreStr = strings.TrimSuffix(baseScoreStr, "]")
+	baseScore, err := strconv.ParseFloat(baseScoreStr, 64)
 	if err != nil {
 		return nil, fmt.Errorf("parse base_score %q: %w", raw.Learner.LearnerModelParam.BaseScore, err)
 	}
