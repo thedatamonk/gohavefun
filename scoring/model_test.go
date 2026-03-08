@@ -84,6 +84,49 @@ func TestTreeTraversal(t *testing.T) {
 	}
 }
 
+func TestLoadModelWithMetaJSON(t *testing.T) {
+	// Model without feature_names
+	modelJSON := `{
+		"learner": {
+			"gradient_booster": {
+				"model": {
+					"trees": [
+						{
+							"id": 0,
+							"tree_param": {"num_nodes": "3"},
+							"left_children":  [1, -1, -1],
+							"right_children": [2, -1, -1],
+							"split_indices":  [0, 0, 0],
+							"split_conditions": [10.0, 0.0, 0.0],
+							"default_left":   [1, 0, 0],
+							"base_weights":   [0.0, -0.5, 0.3]
+						}
+					]
+				}
+			},
+			"learner_model_param": {
+				"base_score": "5.000000e-01",
+				"num_feature": "1"
+			}
+		}
+	}`
+
+	metaJSON := `{"feature_names": ["tenure_months"], "n_estimators": 1}`
+
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "model.json"), []byte(modelJSON), 0644)
+	os.WriteFile(filepath.Join(dir, "meta.json"), []byte(metaJSON), 0644)
+
+	model, err := LoadXGBoostModel(filepath.Join(dir, "model.json"))
+	if err != nil {
+		t.Fatalf("failed to load model: %v", err)
+	}
+
+	if len(model.FeatureNames) != 1 || model.FeatureNames[0] != "tenure_months" {
+		t.Fatalf("expected feature_names [tenure_months], got %v", model.FeatureNames)
+	}
+}
+
 func TestModelPredict(t *testing.T) {
 	// Two trees, both split on feature[0] < 10.0
 	// Tree 1: left=-0.3, right=0.2

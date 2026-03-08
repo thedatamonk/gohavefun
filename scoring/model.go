@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"path/filepath"
 	"strconv"
 )
 
@@ -131,6 +132,19 @@ func LoadXGBoostModel(path string) (*XGBoostModel, error) {
 	}
 
 	featureNames := raw.Learner.FeatureNames
+
+	// If feature_names not in model JSON, try meta.json in same directory
+	if len(featureNames) == 0 {
+		metaPath := filepath.Join(filepath.Dir(path), "meta.json")
+		if metaData, err := os.ReadFile(metaPath); err == nil {
+			var meta struct {
+				FeatureNames []string `json:"feature_names"`
+			}
+			if json.Unmarshal(metaData, &meta) == nil {
+				featureNames = meta.FeatureNames
+			}
+		}
+	}
 
 	return &XGBoostModel{
 		BaseScore:    baseScore,
