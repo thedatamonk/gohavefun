@@ -9,7 +9,7 @@ import (
 	"github.com/rohil/gofun/store"
 )
 
-func New(fs *store.FeatureStore) http.Handler {
+func New(fs store.Store) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /health", handleHealth)
@@ -27,7 +27,7 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
-func handleGet(fs *store.FeatureStore) http.HandlerFunc {
+func handleGet(fs store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		entityType := r.PathValue("entity_type")
 		entityID := r.PathValue("entity_id")
@@ -43,7 +43,7 @@ func handleGet(fs *store.FeatureStore) http.HandlerFunc {
 	}
 }
 
-func handleSet(fs *store.FeatureStore) http.HandlerFunc {
+func handleSet(fs store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		entityType := r.PathValue("entity_type")
 		entityID := r.PathValue("entity_id")
@@ -65,7 +65,7 @@ type batchRequest struct {
 	Keys []store.Key `json:"keys"`
 }
 
-func handleBatch(fs *store.FeatureStore) http.HandlerFunc {
+func handleBatch(fs store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req batchRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -79,7 +79,7 @@ func handleBatch(fs *store.FeatureStore) http.HandlerFunc {
 	}
 }
 
-func gatherFeatureGroups(fs *store.FeatureStore, customerID string) (map[string]store.FeatureVector, bool) {
+func gatherFeatureGroups(fs store.Store, customerID string) (map[string]store.FeatureVector, bool) {
 	groups := make(map[string]store.FeatureVector)
 	groupNames := []string{
 		feature.EntityProfile, feature.EntityUsage,
@@ -95,7 +95,7 @@ func gatherFeatureGroups(fs *store.FeatureStore, customerID string) (map[string]
 	return groups, found
 }
 
-func handlePredict(fs *store.FeatureStore) http.HandlerFunc {
+func handlePredict(fs store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		customerID := r.PathValue("customer_id")
 		groups, found := gatherFeatureGroups(fs, customerID)
@@ -109,7 +109,7 @@ func handlePredict(fs *store.FeatureStore) http.HandlerFunc {
 	}
 }
 
-func handleCustomerFeatures(fs *store.FeatureStore) http.HandlerFunc {
+func handleCustomerFeatures(fs store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		customerID := r.PathValue("customer_id")
 		groups, found := gatherFeatureGroups(fs, customerID)

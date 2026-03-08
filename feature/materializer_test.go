@@ -9,7 +9,7 @@ import (
 	"github.com/rohil/gofun/store"
 )
 
-func seedRawEvents(fs *store.FeatureStore, id string) {
+func seedRawEvents(fs *store.MemoryStore, id string) {
 	fs.Set(EntityRawLogins, id, store.FeatureVector{
 		"count_30d": 20, "avg_session_min": 30, "days_since_last": 2, "features_used_pct": 75,
 	})
@@ -22,7 +22,7 @@ func seedRawEvents(fs *store.FeatureStore, id string) {
 }
 
 func TestMaterializeOnce(t *testing.T) {
-	fs := store.NewFeatureStore()
+	fs := store.NewMemoryStore()
 	seedRawEvents(fs, "cust-0001")
 
 	m := NewMaterializer(fs, []string{"cust-0001"})
@@ -57,7 +57,7 @@ func TestMaterializeOnce(t *testing.T) {
 }
 
 func TestMaterializerStartStop(t *testing.T) {
-	fs := store.NewFeatureStore()
+	fs := store.NewMemoryStore()
 	seedRawEvents(fs, "cust-0001")
 
 	m := NewMaterializer(fs, []string{"cust-0001"})

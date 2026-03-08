@@ -9,8 +9,8 @@ import (
 	"github.com/rohil/gofun/store"
 )
 
-func newTestStore() *store.FeatureStore {
-	fs := store.NewFeatureStore()
+func newTestStore() *store.MemoryStore {
+	fs := store.NewMemoryStore()
 	fs.Set("user", "123", store.FeatureVector{"age": 25, "score": 0.85})
 	return fs
 }
@@ -109,8 +109,8 @@ func TestSetInvalidJSON(t *testing.T) {
 	}
 }
 
-func setupChurnStore() *store.FeatureStore {
-	fs := store.NewFeatureStore()
+func setupChurnStore() *store.MemoryStore {
+	fs := store.NewMemoryStore()
 	fs.Set("customer_profile", "cust-0001", store.FeatureVector{
 		"tenure_months": 60, "plan_tier": 3, "monthly_charge": 29.99,
 	})

@@ -9,7 +9,7 @@ import (
 )
 
 func TestGenerate(t *testing.T) {
-	fs := store.NewFeatureStore()
+	fs := store.NewMemoryStore()
 	ids := Generate(fs, 75)
 
 	if len(ids) != 75 {
@@ -41,8 +41,8 @@ func TestGenerate(t *testing.T) {
 }
 
 func TestGenerateDeterministic(t *testing.T) {
-	fs1 := store.NewFeatureStore()
-	fs2 := store.NewFeatureStore()
+	fs1 := store.NewMemoryStore()
+	fs2 := store.NewMemoryStore()
 	ids1 := Generate(fs1, 10)
 	ids2 := Generate(fs2, 10)
 

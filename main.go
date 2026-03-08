@@ -16,7 +16,7 @@ import (
 )
 
 func main() {
-	fs := store.NewFeatureStore()
+	fs := store.NewMemoryStore()
 
 	// Generate seed data
 	customerIDs := seed.Generate(fs, 75)

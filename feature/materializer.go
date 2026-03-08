@@ -10,11 +10,11 @@ import (
 )
 
 type Materializer struct {
-	store       *store.FeatureStore
+	store       store.Store
 	customerIDs []string
 }
 
-func NewMaterializer(fs *store.FeatureStore, customerIDs []string) *Materializer {
+func NewMaterializer(fs store.Store, customerIDs []string) *Materializer {
 	return &Materializer{store: fs, customerIDs: customerIDs}
 }
 

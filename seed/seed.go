@@ -9,7 +9,7 @@ import (
 	"github.com/rohil/gofun/store"
 )
 
-func Generate(fs *store.FeatureStore, n int) []string {
+func Generate(fs store.Store, n int) []string {
 	rng := rand.New(rand.NewSource(42))
 	ids := make([]string, n)
 

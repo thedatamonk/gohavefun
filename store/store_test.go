@@ -6,7 +6,7 @@ import (
 )
 
 func TestSetAndGet(t *testing.T) {
-	fs := NewFeatureStore()
+	fs := NewMemoryStore()
 	fs.Set("user", "1", FeatureVector{"age": 25})
 
 	got, ok := fs.Get("user", "1")
@@ -19,7 +19,7 @@ func TestSetAndGet(t *testing.T) {
 }
 
 func TestGetMissing(t *testing.T) {
-	fs := NewFeatureStore()
+	fs := NewMemoryStore()
 	_, ok := fs.Get("user", "999")
 	if ok {
 		t.Fatal("expected key to be missing")
@@ -27,7 +27,7 @@ func TestGetMissing(t *testing.T) {
 }
 
 func TestSetOverwrite(t *testing.T) {
-	fs := NewFeatureStore()
+	fs := NewMemoryStore()
 	fs.Set("user", "1", FeatureVector{"age": 25})
 	fs.Set("user", "1", FeatureVector{"age": 30})
 
@@ -38,7 +38,7 @@ func TestSetOverwrite(t *testing.T) {
 }
 
 func TestGetBatch(t *testing.T) {
-	fs := NewFeatureStore()
+	fs := NewMemoryStore()
 	fs.Set("user", "1", FeatureVector{"age": 25})
 	fs.Set("user", "2", FeatureVector{"age": 30})
 
@@ -57,7 +57,7 @@ func TestGetBatch(t *testing.T) {
 }
 
 func TestConcurrentAccess(t *testing.T) {
-	fs := NewFeatureStore()
+	fs := NewMemoryStore()
 	var wg sync.WaitGroup
 
 	// Concurrent writes
