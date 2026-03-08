@@ -1,6 +1,14 @@
-# Go Feature Store
+# Customer Churn Prediction Feature Store
 
-An in-memory ML feature store HTTP service built with Go's standard library. Demonstrates concurrency primitives (sync.RWMutex), HTTP serving, and graceful shutdown.
+An in-memory ML feature store for customer churn prediction, built with Go's standard library. Simulates a real feature serving workflow: raw events → materialization → feature store → prediction.
+
+## Architecture
+
+- **Store** (`store/`) — Generic feature store with RWMutex-protected concurrent access
+- **Feature Schema** (`feature/schema.go`) — 13 churn features across 4 groups (profile, usage, billing, support)
+- **Materializer** (`feature/materializer.go`) — Background goroutine computing derived features from raw events every 10s
+- **Scorer** (`scoring/`) — Logistic regression model returning churn probability + risk factors
+- **Seed Data** (`seed/`) — Generates 75 customers across 3 personas (loyal, mixed, at-risk)
 
 ## Run
 
@@ -8,19 +16,18 @@ An in-memory ML feature store HTTP service built with Go's standard library. Dem
 go run .
 ```
 
-Server starts on `:8080`.
+Server starts on `:8080` with 75 seeded customers and a background materializer.
 
 ## Test
 
 ```bash
-# Run all tests
+# Run all tests with race detector
 go test -race ./...
 
-# Run test for handler 
+# Run tests for a specific package
 go test ./handler/... -v
-
-# Run test for concurrency on feature store
 go test ./store/... -race -v
+go test ./scoring/... -v
 ```
 
 ## API
@@ -30,27 +37,68 @@ go test ./store/... -race -v
 curl localhost:8080/health
 ```
 
-### Get features
+### Predict churn
 ```bash
-curl localhost:8080/features/user/123
+curl localhost:8080/predict/cust-0001
+```
+
+### Get all features for a customer
+```bash
+curl localhost:8080/customers/cust-0001/features
+```
+
+### Get a specific feature group
+```bash
+curl localhost:8080/features/customer_profile/cust-0001
+curl localhost:8080/features/usage_metrics/cust-0001
+curl localhost:8080/features/billing/cust-0001
+curl localhost:8080/features/support/cust-0001
 ```
 
 ### Set features
 ```bash
-curl -X POST localhost:8080/features/user/456 \
-  -d '{"age": 30, "score": 0.95}'
+curl -X POST localhost:8080/features/customer_profile/cust-0099 \
+  -d '{"tenure_months": 12, "plan_tier": 2, "monthly_charge": 29.99}'
 ```
 
 ### Batch get
 ```bash
 curl -X POST localhost:8080/features/batch \
-  -d '{"keys": [{"entity_type":"user","entity_id":"123"},{"entity_type":"item","entity_id":"abc"}]}'
+  -d '{"keys": [{"entity_type":"customer_profile","entity_id":"cust-0001"},{"entity_type":"billing","entity_id":"cust-0001"}]}'
 ```
 
-## Seeded Data
+## Seeded Customers
 
-The server starts with sample data:
-- `user:123` — age, score, active_days
-- `user:456` — age, score, active_days
-- `item:abc` — price, popularity
-- `item:def` — price, popularity
+75 customers (`cust-0001` through `cust-0075`) generated with deterministic seed:
+- ~30% loyal — long tenure, high engagement, no issues
+- ~40% mixed — varying signals
+- ~30% at-risk — short tenure, low engagement, many support tickets
+
+## Load Testing
+
+Requires [k6](https://k6.io/):
+
+```bash
+brew install k6
+```
+
+Run the load test (server must be running):
+
+```bash
+k6 run loadtest.js
+```
+
+The test ramps up to 1000 virtual users and exercises all endpoints:
+- Health check
+- Single feature fetch
+- Batch feature fetch
+- Churn prediction
+
+Thresholds: p99 latency < 100ms, error rate < 1%.
+
+## Scoring Model
+
+Logistic regression with 13 features. Returns:
+- `churn_probability` (0-1)
+- `risk_level` (low/medium/high)
+- `top_risk_factors` (top 3 contributors to churn risk)
