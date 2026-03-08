@@ -2,3 +2,5 @@ gofun
 .vscode
 
 __debug*
+data/
+registry.db

@@ -17,16 +17,24 @@ import (
 )
 
 func main() {
-	fs := store.NewMemoryStore()
+	os.MkdirAll("data", 0755)
 
-	reg, err := registry.NewSQLiteRegistry("registry.db")
+	fs, err := store.NewSQLiteStore("data/gofun.db")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "store error: %v\n", err)
+		os.Exit(1)
+	}
+	defer fs.Close()
+
+	reg, err := registry.NewSQLiteRegistry("data/registry.db")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "registry error: %v\n", err)
 		os.Exit(1)
 	}
 	defer reg.Close()
 
-	// Generate seed data
+	// Seed registry and feature data
+	seed.SeedRegistry(reg)
 	customerIDs := seed.Generate(fs, 75)
 	fmt.Printf("Seeded %d customers\n", len(customerIDs))
 
@@ -50,16 +58,13 @@ func main() {
 		}
 	}()
 
-	// Wait for interrupt signal
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	fmt.Println("\nShutting down...")
 
-	// Stop materializer
 	cancel()
 
-	// Shutdown HTTP server
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer shutdownCancel()
 

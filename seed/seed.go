@@ -6,8 +6,90 @@ import (
 	"math/rand"
 
 	"github.com/rohil/gofun/feature"
+	"github.com/rohil/gofun/registry"
 	"github.com/rohil/gofun/store"
 )
+
+func SeedRegistry(reg *registry.Registry) {
+	views := []registry.FeatureViewDef{
+		{
+			Name: "customer_profile", EntityType: "customer",
+			Description: "Customer profile features", Owner: "growth-team",
+			Features: []registry.FeatureDef{
+				{Name: "tenure_months", Dtype: "float64", Description: "Months since signup"},
+				{Name: "plan_tier", Dtype: "float64", Description: "1=basic, 2=pro, 3=enterprise"},
+				{Name: "monthly_charge", Dtype: "float64", Description: "Monthly subscription price"},
+			},
+			Tags: map[string]string{"group": "profile"},
+		},
+		{
+			Name: "usage_metrics", EntityType: "customer",
+			Description: "Usage-derived metrics", Owner: "product-team",
+			Features: []registry.FeatureDef{
+				{Name: "logins_last_30d", Dtype: "float64", Description: "Login count in last 30 days"},
+				{Name: "avg_session_minutes", Dtype: "float64", Description: "Average session length"},
+				{Name: "days_since_last_login", Dtype: "float64", Description: "Days since last activity"},
+				{Name: "feature_adoption_pct", Dtype: "float64", Description: "Percent of features used"},
+			},
+			Tags: map[string]string{"group": "usage"},
+		},
+		{
+			Name: "billing", EntityType: "customer",
+			Description: "Billing-derived metrics", Owner: "finance-team",
+			Features: []registry.FeatureDef{
+				{Name: "total_spend", Dtype: "float64", Description: "Lifetime spend"},
+				{Name: "late_payments_count", Dtype: "float64", Description: "Number of late payments"},
+				{Name: "avg_monthly_spend", Dtype: "float64", Description: "Average monthly billing"},
+			},
+			Tags: map[string]string{"group": "billing"},
+		},
+		{
+			Name: "support", EntityType: "customer",
+			Description: "Support interaction metrics", Owner: "support-team",
+			Features: []registry.FeatureDef{
+				{Name: "tickets_last_90d", Dtype: "float64", Description: "Tickets in last 90 days"},
+				{Name: "avg_resolution_hours", Dtype: "float64", Description: "Average ticket resolution time"},
+				{Name: "escalation_count", Dtype: "float64", Description: "Number of escalated tickets"},
+			},
+			Tags: map[string]string{"group": "support"},
+		},
+		{
+			Name: "raw_logins", EntityType: "customer",
+			Description: "Raw login event data", Owner: "platform-team",
+			Features: []registry.FeatureDef{
+				{Name: "count_30d", Dtype: "float64"},
+				{Name: "avg_session_min", Dtype: "float64"},
+				{Name: "days_since_last", Dtype: "float64"},
+				{Name: "features_used_pct", Dtype: "float64"},
+			},
+			Tags: map[string]string{"group": "raw"},
+		},
+		{
+			Name: "raw_payments", EntityType: "customer",
+			Description: "Raw payment event data", Owner: "platform-team",
+			Features: []registry.FeatureDef{
+				{Name: "total", Dtype: "float64"},
+				{Name: "late_count", Dtype: "float64"},
+				{Name: "monthly_avg", Dtype: "float64"},
+			},
+			Tags: map[string]string{"group": "raw"},
+		},
+		{
+			Name: "raw_tickets", EntityType: "customer",
+			Description: "Raw support ticket data", Owner: "platform-team",
+			Features: []registry.FeatureDef{
+				{Name: "count_90d", Dtype: "float64"},
+				{Name: "avg_resolution", Dtype: "float64"},
+				{Name: "escalations", Dtype: "float64"},
+			},
+			Tags: map[string]string{"group": "raw"},
+		},
+	}
+
+	for _, v := range views {
+		reg.Create(v) // ignore error if already exists
+	}
+}
 
 func Generate(fs store.Store, n int) []string {
 	rng := rand.New(rand.NewSource(42))

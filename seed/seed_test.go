@@ -2,9 +2,11 @@
 package seed
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/rohil/gofun/feature"
+	"github.com/rohil/gofun/registry"
 	"github.com/rohil/gofun/store"
 )
 
@@ -37,6 +39,30 @@ func TestGenerate(t *testing.T) {
 		if _, ok := fs.Get(feature.EntityRawTickets, id); !ok {
 			t.Fatalf("customer %s missing raw_tickets", id)
 		}
+	}
+}
+
+func TestSeedRegistry(t *testing.T) {
+	dir := t.TempDir()
+	reg, err := registry.NewSQLiteRegistry(filepath.Join(dir, "test.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reg.Close()
+
+	SeedRegistry(reg)
+
+	views := reg.List()
+	if len(views) != 7 {
+		t.Fatalf("expected 7 views (4 derived + 3 raw), got %d", len(views))
+	}
+
+	cp, ok := reg.Get("customer_profile")
+	if !ok {
+		t.Fatal("expected customer_profile view")
+	}
+	if len(cp.Features) != 3 {
+		t.Fatalf("expected 3 features in customer_profile, got %d", len(cp.Features))
 	}
 }
 
