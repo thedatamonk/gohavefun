@@ -11,12 +11,20 @@ import (
 
 	"github.com/rohil/gofun/feature"
 	"github.com/rohil/gofun/handler"
+	"github.com/rohil/gofun/registry"
 	"github.com/rohil/gofun/seed"
 	"github.com/rohil/gofun/store"
 )
 
 func main() {
 	fs := store.NewMemoryStore()
+
+	reg, err := registry.NewSQLiteRegistry("registry.db")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "registry error: %v\n", err)
+		os.Exit(1)
+	}
+	defer reg.Close()
 
 	// Generate seed data
 	customerIDs := seed.Generate(fs, 75)
@@ -31,7 +39,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:    ":8080",
-		Handler: handler.New(fs),
+		Handler: handler.New(fs, reg),
 	}
 
 	go func() {
