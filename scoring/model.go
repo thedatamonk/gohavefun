@@ -114,12 +114,40 @@ func LoadXGBoostModel(path string) (*XGBoostModel, error) {
 		return nil, fmt.Errorf("parse model JSON: %w", err)
 	}
 
-	numFeatures, _ := strconv.Atoi(raw.Learner.LearnerModelParam.NumFeature)
-	baseScore, _ := strconv.ParseFloat(raw.Learner.LearnerModelParam.BaseScore, 64)
+	numFeatures, err := strconv.Atoi(raw.Learner.LearnerModelParam.NumFeature)
+	if err != nil {
+		return nil, fmt.Errorf("parse num_feature %q: %w", raw.Learner.LearnerModelParam.NumFeature, err)
+	}
+	baseScore, err := strconv.ParseFloat(raw.Learner.LearnerModelParam.BaseScore, 64)
+	if err != nil {
+		return nil, fmt.Errorf("parse base_score %q: %w", raw.Learner.LearnerModelParam.BaseScore, err)
+	}
 
 	trees := make([]Tree, len(raw.Learner.GradientBooster.Model.Trees))
 	for i, t := range raw.Learner.GradientBooster.Model.Trees {
-		numNodes, _ := strconv.Atoi(t.TreeParam.NumNodes)
+		numNodes, err := strconv.Atoi(t.TreeParam.NumNodes)
+		if err != nil {
+			return nil, fmt.Errorf("parse num_nodes for tree %d %q: %w", i, t.TreeParam.NumNodes, err)
+		}
+		// Validate that all flat arrays have length == NumNodes.
+		if len(t.LeftChildren) != numNodes {
+			return nil, fmt.Errorf("tree %d: left_children length %d != num_nodes %d", i, len(t.LeftChildren), numNodes)
+		}
+		if len(t.RightChildren) != numNodes {
+			return nil, fmt.Errorf("tree %d: right_children length %d != num_nodes %d", i, len(t.RightChildren), numNodes)
+		}
+		if len(t.SplitIndices) != numNodes {
+			return nil, fmt.Errorf("tree %d: split_indices length %d != num_nodes %d", i, len(t.SplitIndices), numNodes)
+		}
+		if len(t.SplitConditions) != numNodes {
+			return nil, fmt.Errorf("tree %d: split_conditions length %d != num_nodes %d", i, len(t.SplitConditions), numNodes)
+		}
+		if len(t.DefaultLeft) != numNodes {
+			return nil, fmt.Errorf("tree %d: default_left length %d != num_nodes %d", i, len(t.DefaultLeft), numNodes)
+		}
+		if len(t.BaseWeights) != numNodes {
+			return nil, fmt.Errorf("tree %d: base_weights length %d != num_nodes %d", i, len(t.BaseWeights), numNodes)
+		}
 		trees[i] = Tree{
 			NumNodes:        numNodes,
 			LeftChildren:    t.LeftChildren,

@@ -72,7 +72,10 @@ func (s *Scorer) predictXGBoost(customerID string, featureGroups map[string]stor
 		riskLevel = "medium"
 	}
 
-	// For XGBoost, report features with highest absolute values as risk factors
+	// For XGBoost, report features with highest absolute values as risk factors.
+	// NOTE: risk factors currently use logistic regression weights, not XGBoost
+	// feature importances. This is a known limitation; a future improvement would
+	// derive contributions from the XGBoost model (e.g., SHAP values).
 	var factors []RiskFactor
 	for _, name := range feature.AllFeatureNames {
 		val := allFeatures[name]

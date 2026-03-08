@@ -127,6 +127,90 @@ func TestLoadModelWithMetaJSON(t *testing.T) {
 	}
 }
 
+func TestLoadModelInvalidJSON(t *testing.T) {
+	dir := t.TempDir()
+	modelPath := filepath.Join(dir, "model.json")
+	os.WriteFile(modelPath, []byte(`{"learner": { "gradient_booster": {`), 0644)
+
+	_, err := LoadXGBoostModel(modelPath)
+	if err == nil {
+		t.Fatal("expected error for truncated/malformed JSON, got nil")
+	}
+}
+
+func TestLoadModelMissingFile(t *testing.T) {
+	_, err := LoadXGBoostModel("/nonexistent/path/to/model.json")
+	if err == nil {
+		t.Fatal("expected error for nonexistent path, got nil")
+	}
+}
+
+func TestLoadModelEmptyTrees(t *testing.T) {
+	modelJSON := `{
+		"learner": {
+			"gradient_booster": {
+				"model": {
+					"trees": []
+				}
+			},
+			"feature_names": [],
+			"learner_model_param": {
+				"base_score": "5.000000e-01",
+				"num_feature": "0"
+			}
+		}
+	}`
+
+	dir := t.TempDir()
+	modelPath := filepath.Join(dir, "model.json")
+	os.WriteFile(modelPath, []byte(modelJSON), 0644)
+
+	model, err := LoadXGBoostModel(modelPath)
+	if err != nil {
+		t.Fatalf("expected no error for empty trees, got: %v", err)
+	}
+	if len(model.Trees) != 0 {
+		t.Fatalf("expected 0 trees, got %d", len(model.Trees))
+	}
+}
+
+func TestLoadModelInvalidNumNodes(t *testing.T) {
+	modelJSON := `{
+		"learner": {
+			"gradient_booster": {
+				"model": {
+					"trees": [
+						{
+							"id": 0,
+							"tree_param": {"num_nodes": "abc"},
+							"left_children":  [1, -1, -1],
+							"right_children": [2, -1, -1],
+							"split_indices":  [0, 0, 0],
+							"split_conditions": [10.0, 0.0, 0.0],
+							"default_left":   [1, 0, 0],
+							"base_weights":   [0.0, -0.5, 0.3]
+						}
+					]
+				}
+			},
+			"feature_names": ["tenure_months"],
+			"learner_model_param": {
+				"base_score": "5.000000e-01",
+				"num_feature": "1"
+			}
+		}
+	}`
+
+	dir := t.TempDir()
+	modelPath := filepath.Join(dir, "model.json")
+	os.WriteFile(modelPath, []byte(modelJSON), 0644)
+
+	_, err := LoadXGBoostModel(modelPath)
+	if err == nil {
+		t.Fatal("expected error for non-numeric num_nodes, got nil")
+	}
+}
+
 func TestModelPredict(t *testing.T) {
 	// Two trees, both split on feature[0] < 10.0
 	// Tree 1: left=-0.3, right=0.2

@@ -76,6 +76,9 @@ func TestScorerFallback(t *testing.T) {
 	if result.ChurnProbability < 0 || result.ChurnProbability > 1 {
 		t.Errorf("churn_probability out of range: %f", result.ChurnProbability)
 	}
+	if result.ModelType != "logistic_regression" {
+		t.Errorf("expected model_type logistic_regression, got %s", result.ModelType)
+	}
 }
 
 func TestScorerWithModel(t *testing.T) {
@@ -128,6 +131,9 @@ func TestScorerWithModel(t *testing.T) {
 	// tenure_months=5 < 10.0 -> left -> leaf -0.5 -> sigmoid(-0.5) ~ 0.378
 	if result.ChurnProbability < 0.37 || result.ChurnProbability > 0.39 {
 		t.Errorf("expected ~0.378, got %f", result.ChurnProbability)
+	}
+	if result.ModelType != "xgboost" {
+		t.Errorf("expected model_type xgboost, got %s", result.ModelType)
 	}
 }
 

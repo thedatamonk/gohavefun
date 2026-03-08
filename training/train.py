@@ -25,7 +25,11 @@ def fetch_all_features(n_customers=5000):
     rows = []
     for i in range(1, n_customers + 1):
         cust_id = f"cust-{i:04d}"
-        resp = requests.get(f"{BASE_URL}/customers/{cust_id}/features")
+        try:
+            resp = requests.get(f"{BASE_URL}/customers/{cust_id}/features")
+        except requests.exceptions.RequestException as e:
+            print(f"Warning: failed to fetch {cust_id}: {e}, skipping")
+            continue
         if resp.status_code != 200:
             print(f"Warning: {cust_id} returned {resp.status_code}, skipping")
             continue
