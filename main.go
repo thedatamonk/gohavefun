@@ -35,7 +35,7 @@ func main() {
 
 	// Seed registry and feature data
 	seed.SeedRegistry(reg)
-	customerIDs := seed.Generate(fs, 75)
+	customerIDs := seed.Generate(fs, 5000)
 	fmt.Printf("Seeded %d customers\n", len(customerIDs))
 
 	// Start materializer
