@@ -8,8 +8,9 @@ An ML feature store for customer churn prediction, built with Go. Features SQLit
 - **Registry** (`registry/`) — Feature view definitions with metadata (owner, description, tags). SQLite-backed with CRUD API
 - **Feature Schema** (`feature/schema.go`) — 13 churn features across 4 groups (profile, usage, billing, support)
 - **Materializer** (`feature/materializer.go`) — Background goroutine computing derived features from raw events every 10s
-- **Scorer** (`scoring/`) — Logistic regression model returning churn probability + risk factors
-- **Seed Data** (`seed/`) — Generates 75 customers across 3 personas + seeds 7 feature view definitions
+- **Scorer** (`scoring/`) — XGBoost model (with logistic regression fallback) returning churn probability + risk factors
+- **Training** (`training/`) — Python script to train XGBoost from feature store data
+- **Seed Data** (`seed/`) — Generates 5,000 customers across 3 personas (loyal, mixed, at-risk) + seeds 7 feature view definitions
 
 ## Persistence
 
@@ -111,9 +112,38 @@ k6 run loadtest.js
 
 Ramps up to 1,300 virtual users across 3 scenarios (reads, writes, registry). Thresholds: p95 < 500ms, error rate < 1%.
 
+## Training the XGBoost Model
+
+Requires Python 3.8+ and a running Go server:
+
+```bash
+# Terminal 1: Start the server
+go run .
+
+# Terminal 2: Train the model
+cd training
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python train.py
+```
+
+This fetches features for all 5,000 customers, generates synthetic churn labels, trains an XGBoost classifier, and exports `models/model.json`.
+
+Restart the Go server to load the new model:
+
+```bash
+# The server will print: "Loaded XGBoost model: 100 trees, 13 features"
+go run .
+curl localhost:8080/predict/cust-0001
+```
+
+The response now includes `"model_type": "xgboost"`. Without a trained model, predictions fall back to logistic regression (`"model_type": "logistic_regression"`).
+
 ## Scoring Model
 
-Logistic regression with 13 features. Returns:
+XGBoost binary classifier (or logistic regression fallback) with 13 features. Returns:
 - `churn_probability` (0-1)
 - `risk_level` (low/medium/high)
 - `top_risk_factors` (top 3 contributors to churn risk)
+- `model_type` (`xgboost` or `logistic_regression`)

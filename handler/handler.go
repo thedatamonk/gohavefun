@@ -10,14 +10,14 @@ import (
 	"github.com/rohil/gofun/store"
 )
 
-func New(fs store.Store, reg *registry.Registry) http.Handler {
+func New(fs store.Store, reg *registry.Registry, scorer *scoring.Scorer) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /health", handleHealth)
 	mux.HandleFunc("GET /features/{entity_type}/{entity_id}", handleGet(fs))
 	mux.HandleFunc("POST /features/{entity_type}/{entity_id}", handleSet(fs, reg))
 	mux.HandleFunc("POST /features/batch", handleBatch(fs))
-	mux.HandleFunc("GET /predict/{customer_id}", handlePredict(fs))
+	mux.HandleFunc("GET /predict/{customer_id}", handlePredict(fs, scorer))
 	mux.HandleFunc("GET /customers/{customer_id}/features", handleCustomerFeatures(fs))
 
 	mux.HandleFunc("GET /registry/feature-views", handleListViews(reg))
@@ -113,7 +113,7 @@ func gatherFeatureGroups(fs store.Store, customerID string) (map[string]store.Fe
 	return groups, found
 }
 
-func handlePredict(fs store.Store) http.HandlerFunc {
+func handlePredict(fs store.Store, scorer *scoring.Scorer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		customerID := r.PathValue("customer_id")
 		groups, found := gatherFeatureGroups(fs, customerID)
@@ -121,7 +121,7 @@ func handlePredict(fs store.Store) http.HandlerFunc {
 			http.Error(w, `{"error":"customer not found"}`, http.StatusNotFound)
 			return
 		}
-		result := scoring.Predict(customerID, groups)
+		result := scorer.Predict(customerID, groups)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(result)
 	}
