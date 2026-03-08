@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/trace"
 	"syscall"
 	"time"
 
@@ -19,6 +20,17 @@ import (
 
 func main() {
 	os.MkdirAll("data", 0755)
+
+	traceFile, err := os.Create("data/trace.out")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "trace error: %v\n", err)
+		os.Exit(1)
+	}
+	if err := trace.Start(traceFile); err != nil {
+		fmt.Fprintf(os.Stderr, "trace start error: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Println("Tracing to data/trace.out")
 
 	fs, err := store.NewSQLiteStore("data/gofun.db")
 	if err != nil {
@@ -65,6 +77,9 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	fmt.Println("\nShutting down...")
+
+	trace.Stop()
+	traceFile.Close()
 
 	cancel()
 
