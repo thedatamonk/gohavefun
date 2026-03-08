@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/rohil/gofun/registry"
+	"github.com/rohil/gofun/scoring"
 	"github.com/rohil/gofun/store"
 )
 
@@ -30,7 +31,7 @@ func newTestStore() *store.MemoryStore {
 
 func TestHealth(t *testing.T) {
 	reg := newTestRegistry(t)
-	h := New(newTestStore(), reg)
+	h := New(newTestStore(), reg, scoring.NewScorer(""))
 	req := httptest.NewRequest("GET", "/health", nil)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, req)
@@ -45,7 +46,7 @@ func TestHealth(t *testing.T) {
 
 func TestGetFeature(t *testing.T) {
 	reg := newTestRegistry(t)
-	h := New(newTestStore(), reg)
+	h := New(newTestStore(), reg, scoring.NewScorer(""))
 	req := httptest.NewRequest("GET", "/features/user/123", nil)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, req)
@@ -60,7 +61,7 @@ func TestGetFeature(t *testing.T) {
 
 func TestGetFeatureNotFound(t *testing.T) {
 	reg := newTestRegistry(t)
-	h := New(newTestStore(), reg)
+	h := New(newTestStore(), reg, scoring.NewScorer(""))
 	req := httptest.NewRequest("GET", "/features/user/999", nil)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, req)
@@ -79,7 +80,7 @@ func TestSetFeature(t *testing.T) {
 			{Name: "score", Dtype: "float64"},
 		},
 	})
-	h := New(newTestStore(), reg)
+	h := New(newTestStore(), reg, scoring.NewScorer(""))
 	body := strings.NewReader(`{"age": 30, "score": 0.95}`)
 	req := httptest.NewRequest("POST", "/features/user/456", body)
 	w := httptest.NewRecorder()
@@ -103,7 +104,7 @@ func TestBatch(t *testing.T) {
 	fs := newTestStore()
 	fs.Set("item", "abc", store.FeatureVector{"price": 9.99})
 	reg := newTestRegistry(t)
-	h := New(fs, reg)
+	h := New(fs, reg, scoring.NewScorer(""))
 
 	body := strings.NewReader(`{"keys":[{"entity_type":"user","entity_id":"123"},{"entity_type":"item","entity_id":"abc"},{"entity_type":"user","entity_id":"missing"}]}`)
 	req := httptest.NewRequest("POST", "/features/batch", body)
@@ -124,7 +125,7 @@ func TestBatch(t *testing.T) {
 
 func TestSetInvalidJSON(t *testing.T) {
 	reg := newTestRegistry(t)
-	h := New(newTestStore(), reg)
+	h := New(newTestStore(), reg, scoring.NewScorer(""))
 	body := strings.NewReader(`not json`)
 	req := httptest.NewRequest("POST", "/features/user/456", body)
 	w := httptest.NewRecorder()
@@ -155,7 +156,7 @@ func setupChurnStore() *store.MemoryStore {
 
 func TestPredictEndpoint(t *testing.T) {
 	reg := newTestRegistry(t)
-	h := New(setupChurnStore(), reg)
+	h := New(setupChurnStore(), reg, scoring.NewScorer(""))
 	req := httptest.NewRequest("GET", "/predict/cust-0001", nil)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, req)
@@ -173,7 +174,7 @@ func TestPredictEndpoint(t *testing.T) {
 
 func TestPredictNotFound(t *testing.T) {
 	reg := newTestRegistry(t)
-	h := New(setupChurnStore(), reg)
+	h := New(setupChurnStore(), reg, scoring.NewScorer(""))
 	req := httptest.NewRequest("GET", "/predict/nonexistent", nil)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, req)
@@ -185,7 +186,7 @@ func TestPredictNotFound(t *testing.T) {
 
 func TestCustomerFeaturesEndpoint(t *testing.T) {
 	reg := newTestRegistry(t)
-	h := New(setupChurnStore(), reg)
+	h := New(setupChurnStore(), reg, scoring.NewScorer(""))
 	req := httptest.NewRequest("GET", "/customers/cust-0001/features", nil)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, req)
@@ -203,7 +204,7 @@ func TestCustomerFeaturesEndpoint(t *testing.T) {
 
 func TestCustomerFeaturesNotFound(t *testing.T) {
 	reg := newTestRegistry(t)
-	h := New(setupChurnStore(), reg)
+	h := New(setupChurnStore(), reg, scoring.NewScorer(""))
 	req := httptest.NewRequest("GET", "/customers/nonexistent/features", nil)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, req)
@@ -217,7 +218,7 @@ func TestCustomerFeaturesNotFound(t *testing.T) {
 
 func TestRegistryCreateAndGet(t *testing.T) {
 	reg := newTestRegistry(t)
-	h := New(newTestStore(), reg)
+	h := New(newTestStore(), reg, scoring.NewScorer(""))
 
 	// Create
 	body := strings.NewReader(`{"name":"orders","entity_type":"order","features":[{"name":"total","dtype":"float64"}]}`)
@@ -244,7 +245,7 @@ func TestRegistryCreateAndGet(t *testing.T) {
 
 func TestRegistryList(t *testing.T) {
 	reg := newTestRegistry(t)
-	h := New(newTestStore(), reg)
+	h := New(newTestStore(), reg, scoring.NewScorer(""))
 
 	for _, name := range []string{"view_a", "view_b"} {
 		body := strings.NewReader(`{"name":"` + name + `","entity_type":"t","features":[{"name":"f","dtype":"float64"}]}`)
@@ -271,7 +272,7 @@ func TestRegistryList(t *testing.T) {
 
 func TestRegistryGetNotFound(t *testing.T) {
 	reg := newTestRegistry(t)
-	h := New(newTestStore(), reg)
+	h := New(newTestStore(), reg, scoring.NewScorer(""))
 
 	req := httptest.NewRequest("GET", "/registry/feature-views/nonexistent", nil)
 	w := httptest.NewRecorder()
@@ -284,7 +285,7 @@ func TestRegistryGetNotFound(t *testing.T) {
 
 func TestRegistryUpdate(t *testing.T) {
 	reg := newTestRegistry(t)
-	h := New(newTestStore(), reg)
+	h := New(newTestStore(), reg, scoring.NewScorer(""))
 
 	// Create
 	body := strings.NewReader(`{"name":"v1","entity_type":"e","features":[{"name":"f1","dtype":"float64"}]}`)
@@ -315,7 +316,7 @@ func TestRegistryUpdate(t *testing.T) {
 
 func TestRegistryDelete(t *testing.T) {
 	reg := newTestRegistry(t)
-	h := New(newTestStore(), reg)
+	h := New(newTestStore(), reg, scoring.NewScorer(""))
 
 	// Create
 	body := strings.NewReader(`{"name":"del_me","entity_type":"e","features":[{"name":"f","dtype":"float64"}]}`)
@@ -352,7 +353,7 @@ func TestFeatureWriteValidation(t *testing.T) {
 			{Name: "score", Dtype: "float64"},
 		},
 	})
-	h := New(newTestStore(), reg)
+	h := New(newTestStore(), reg, scoring.NewScorer(""))
 
 	// Valid write
 	body := strings.NewReader(`{"age": 30, "score": 0.9}`)

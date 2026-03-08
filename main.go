@@ -12,6 +12,7 @@ import (
 	"github.com/rohil/gofun/feature"
 	"github.com/rohil/gofun/handler"
 	"github.com/rohil/gofun/registry"
+	"github.com/rohil/gofun/scoring"
 	"github.com/rohil/gofun/seed"
 	"github.com/rohil/gofun/store"
 )
@@ -45,9 +46,11 @@ func main() {
 	mat := feature.NewMaterializer(fs, customerIDs)
 	go mat.Start(ctx, 10*time.Second)
 
+	scorer := scoring.NewScorer("models")
+
 	srv := &http.Server{
 		Addr:    ":8080",
-		Handler: handler.New(fs, reg),
+		Handler: handler.New(fs, reg, scorer),
 	}
 
 	go func() {
