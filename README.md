@@ -7,7 +7,8 @@ An in-memory ML feature store for customer churn prediction, built with Go's sta
 - **Store** (`store/`) — Generic feature store with RWMutex-protected concurrent access
 - **Feature Schema** (`feature/schema.go`) — 13 churn features across 4 groups (profile, usage, billing, support)
 - **Materializer** (`feature/materializer.go`) — Background goroutine computing derived features from raw events every 10s
-- **Scorer** (`scoring/`) — Logistic regression model returning churn probability + risk factors
+- **Scorer** (`scoring/`) — XGBoost model (with logistic regression fallback) returning churn probability + risk factors
+- **Training** (`training/`) — Python script to train XGBoost from feature store data
 - **Seed Data** (`seed/`) — Generates 75 customers across 3 personas (loyal, mixed, at-risk)
 
 ## Run
@@ -96,9 +97,38 @@ The test ramps up to 1000 virtual users and exercises all endpoints:
 
 Thresholds: p99 latency < 100ms, error rate < 1%.
 
+## Training the XGBoost Model
+
+Requires Python 3.8+ and a running Go server:
+
+```bash
+# Terminal 1: Start the server
+go run .
+
+# Terminal 2: Train the model
+cd training
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python train.py
+```
+
+This fetches features for all 5,000 customers, generates synthetic churn labels, trains an XGBoost classifier, and exports `models/model.json`.
+
+Restart the Go server to load the new model:
+
+```bash
+# The server will print: "Loaded XGBoost model: 100 trees, 13 features"
+go run .
+curl localhost:8080/predict/cust-0001
+```
+
+The response now includes `"model_type": "xgboost"`. Without a trained model, predictions fall back to logistic regression (`"model_type": "logistic_regression"`).
+
 ## Scoring Model
 
-Logistic regression with 13 features. Returns:
+XGBoost binary classifier (or logistic regression fallback) with 13 features. Returns:
 - `churn_probability` (0-1)
 - `risk_level` (low/medium/high)
 - `top_risk_factors` (top 3 contributors to churn risk)
+- `model_type` (`xgboost` or `logistic_regression`)
