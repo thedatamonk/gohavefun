@@ -1,5 +1,6 @@
 gofun
 .vscode
+.worktrees/
 
 __debug*
 data/
